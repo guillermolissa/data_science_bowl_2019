@@ -132,6 +132,8 @@ def get_data(user_sample, test_set=False):
     last_activity = 0
     user_activities_count = {'Clip':0, 'Activity': 0, 'Assessment': 0, 'Game':0}
     user_activities_even_count = {'Clip':0, 'Activity': 0, 'Assessment': 0, 'Game':0}
+    user_activities_lasttime = {'Clip':0, 'Activity': 0, 'Assessment': 0, 'Game':0}
+
 
     # news features: time spent in each activity
     time_spent_each_act = {actv: 0 for actv in list_of_user_activities}
@@ -172,6 +174,11 @@ def get_data(user_sample, test_set=False):
             time_spent = int(session['game_time'].iloc[-1] / 1000)
             time_spent_each_act[activities_labels[session_title]] += time_spent
             accumulated_act_count[activities_labels[session_title]] +=1
+
+            # get last time of each type session
+            user_activities_lasttime[session_type] = session['timestamp'].iloc[-1]
+
+
             
         # extract info from event_data. We must parcer json info to get it
         if session_type == 'Game':
@@ -258,7 +265,13 @@ def get_data(user_sample, test_set=False):
             features['accumulated_correct_games'] = accumulated_correct_games
             features['accumulated_uncorrect_games'] = accumulated_uncorrect_games
             features['accumulated_misses_games'] = accumulated_misses_games
-            
+
+            user_activities_lasttime
+
+
+            # get last time of assessment
+            user_activities_lasttime[session_type] = session['timestamp'].iloc[-1]
+
             # there are some conditions to allow this features to be inserted in the datasets
             # if it's a test set, all sessions belong to the final dataset
             # it it's a train, needs to be passed throught this clausule: session.query(f'event_code == {win_code[session_title]}')
