@@ -17,14 +17,14 @@ except:
 
 
 # Load datasets
-train = pd.read_csv('input/raw/data-science-bowl-2019/train.csv')
-train_labels = pd.read_csv('input/raw/data-science-bowl-2019/train_labels.csv')
-test = pd.read_csv('input/raw/data-science-bowl-2019/test.csv')
+train = pd.read_csv('data/raw/data-science-bowl-2019/train.csv')
+train_labels = pd.read_csv('data/raw/data-science-bowl-2019/train_labels.csv')
+test = pd.read_csv('data/raw/data-science-bowl-2019/test.csv')
 #specs = pd.read_csv('input/raw/data-science-bowl-2019/specs.csv')
 
 
-# Filter unusefull data¨_-
-keep_id = train[train.type == "Assessment"][['installation_id']].drop_duplicates()
+# Filter unusefull data
+keep_id = train[train.type == "Assessment"][["installation_id"]].drop_duplicates()
 train = pd.merge(train, keep_id, on="installation_id", how="inner")
 
 print("Train: ",train.shape)
@@ -175,7 +175,7 @@ def get_data(user_sample, test_set=False):
             time_spent_each_act[activities_labels[session_title]] += time_spent
             accumulated_act_count[activities_labels[session_title]] +=1
 
-            # get last time of each type session
+            # get last time of each type of session
             user_activities_lasttime[session_type] = session['timestamp'].iloc[-1]
 
 
@@ -222,6 +222,28 @@ def get_data(user_sample, test_set=False):
             features.update(user_activities_even_count_tmp)
             del user_activities_even_count_tmp
 
+             # diff time activities features
+            user_activities_diff_time = {'Assessment_Clip_difftime':0, 'Assessment_Activity_difftime': 0, 
+            'Assessment_Assessment_difftime': 0, 'Assessment_Game_difftime':0}
+
+            if user_activities_lasttime['Clip'] != 0:
+                user_activities_diff_time['Assessment_Clip_difftime'] = (session['timestamp'].iloc[-1] - user_activities_lasttime['Clip']).seconds
+            
+            if user_activities_lasttime['Activity'] != 0:
+                user_activities_diff_time['Assessment_Activity_difftime'] = (session['timestamp'].iloc[-1] - user_activities_lasttime['Activity']).seconds
+            
+            if user_activities_lasttime['Game'] != 0:
+                user_activities_diff_time['Assessment_Game_difftime'] = (session['timestamp'].iloc[-1] - user_activities_lasttime['Game']).seconds
+
+            if user_activities_lasttime['Assessment'] != 0: 
+                user_activities_diff_time['Assessment_Assessment_difftime'] = (session['timestamp'].iloc[-1] - user_activities_lasttime['Assessment']).seconds
+
+            features.update(user_activities_diff_time.copy())
+
+            # get last time of assessment
+            user_activities_lasttime[session_type] = session['timestamp'].iloc[-1]
+            
+
 
             # get installation_id for aggregated features
             features['installation_id'] = session['installation_id'].iloc[-1] #from Andrew
@@ -265,12 +287,6 @@ def get_data(user_sample, test_set=False):
             features['accumulated_correct_games'] = accumulated_correct_games
             features['accumulated_uncorrect_games'] = accumulated_uncorrect_games
             features['accumulated_misses_games'] = accumulated_misses_games
-
-            user_activities_lasttime
-
-
-            # get last time of assessment
-            user_activities_lasttime[session_type] = session['timestamp'].iloc[-1]
 
             # there are some conditions to allow this features to be inserted in the datasets
             # if it's a test set, all sessions belong to the final dataset
@@ -317,6 +333,20 @@ def preprocess(reduce_train, reduce_test):
         
         df['installation_event_code_count_mean'] = df.groupby(['installation_id'])['sum_event_code_count'].transform('mean')
         #df['installation_event_code_count_std'] = df.groupby(['installation_id'])['sum_event_code_count'].transform('std')
+
+        # calculate diff for each number of actions
+        df['Clip_eventacum_diff'] = df['Clip_eventacum'].diff()
+        df['Game_eventacum_diff'] = df['Game_eventacum'].diff()
+        df['Activity_eventacum_diff'] = df['Activity_eventacum'].diff()
+        df['Assessment_eventacum_diff'] = df['Assessment_eventacum'].diff()
+
+        df['accumulated_correct_attempts_diff'] = df['accumulated_correct_attempts'].diff()
+        df['accumulated_uncorrect_attempts_diff'] = df['accumulated_uncorrect_attempts'].diff()
+
+        df['accumulated_correct_games_diff'] = df['accumulated_correct_games'].diff()
+        df['accumulated_uncorrect_games_diff'] = df['accumulated_uncorrect_games'].diff()
+        df['accumulated_misses_games_diff'] = df['accumulated_misses_games'].diff()
+
         
     features = reduce_train.loc[(reduce_train.sum(axis=1) != 0), (reduce_train.sum(axis=0) != 0)].columns # delete useless columns
     features = [x for x in features if x not in ['accuracy_group', 'installation_id']] + ['acc_' + title for title in assess_titles]
@@ -379,7 +409,7 @@ reduce_test = reduce_test[cols_to_keep]
 
 
 # saving datasets
-reduce_train.to_pickle('input/features/train_features_002.pkl')
+reduce_train.to_pickle('data/features/train_features_003.pkl')
 
-y.to_pickle('input/features/train_labels.pkl')
-reduce_test.to_pickle('input/features/submit_features_002.pkl')
+y.to_pickle('data/features/train_labels.pkl')
+reduce_test.to_pickle('data/features/submit_features_003.pkl')
